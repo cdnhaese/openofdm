@@ -15,8 +15,8 @@ module dot11 (
     input [31:0] min_plateau,
 
     // INPUT: RSSI
-    input [10:0] rssi_half_db1,
-    input [10:0] rssi_half_db2,
+    input [10:0] rssi_half_db_1,
+    input [10:0] rssi_half_db_2,
     // INPUT: I/Q samples
     input [31:0] sample_in_1,
     input [31:0] sample_in_2,
@@ -52,8 +52,7 @@ module dot11 (
     output reg [31:0] state_history,
 
     // power trigger
-    output wire power_trigger_1,
-    output wire power_trigger_2,
+    output wire power_trigger,
     
     // ant_switch
     output short_preamble_detected,
@@ -261,9 +260,10 @@ reg short_gi;
 
 reg [3:0] old_state;
 
-wire power_trigger;
-assign power_trigger_1 = (rssi_half_db1>=power_thres? 1: 0);
-assign power_trigger_2 = (rssi_half_db2>=power_thres? 1: 0);
+wire power_trigger_1;
+wire power_trigger_2;
+assign power_trigger_1 = (rssi_half_db_1>=power_thres? 1: 0);
+assign power_trigger_2 = (rssi_half_db_2>=power_thres? 1: 0);
 assign power_trigger = (power_trigger_1 | power_trigger_2);
 
 assign state_changed = state != old_state;
@@ -368,8 +368,8 @@ ant_switch ant_switch_inst(
     .data_ant1_in(sample_in_1),
     .data_ant2_in(sample_in_2),
     .data_in_strobe(sample_in_strobe),
-    .rssi1_half_db(rssi_half_db1),
-    .rssi2_half_db(rssi_half_db2),
+    .rssi1_half_db_1(rssi_half_db_1),
+    .rssi2_half_db_2(rssi_half_db_2),
     .power_trigger_1(power_trigger_1),
     .power_trigger_2(power_trigger_2),
     .sync_short_reset(sync_short_reset),

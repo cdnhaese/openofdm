@@ -17,8 +17,8 @@ module ant_switch
     input data_in_strobe,
     
     // RSSI input
-    input [10:0] rssi1_half_db,
-    input [10:0] rssi2_half_db,
+    input [10:0] rssi1_half_db_1,
+    input [10:0] rssi2_half_db_2,
     
     // power trigger input
     input power_trigger_1,
@@ -27,7 +27,7 @@ module ant_switch
     // TODO: ports for sync_short here
     input sync_short_reset,
     input sync_short_enable,
-    input min_plateau,
+    input [31:0] min_plateau,
     output reg short_preamble_detected,
     output signed [31:0] phase_offset,
     
@@ -67,8 +67,7 @@ module ant_switch
     wire ant_select_internal;
     
     // Take sign of result to find out if RSSI2 > RSSI1
-    assign rssi_diff_half_db = rssi2_half_db - rssi1_half_db;
-    // ant_select 1 indicates antenna 1, 0 indicates antenna 2
+    assign rssi_diff_half_db = rssi2_half_db_2 - rssi1_half_db_1;
     assign ant_select_internal = rssi_diff_half_db[10];
     
     reg [2:0] state;
@@ -116,7 +115,7 @@ module ant_switch
         .phase_offset(phase_offset_2)
     );
     
-    assign ant_select = state==ANT2_FIX?ANT2:ANT1;
+    assign ant_select = state==ANT1_FIX?ANT1:ANT2;
     
     always @(posedge clock) begin
         if (reset) begin
@@ -156,12 +155,14 @@ module ant_switch
                 end
                 ANT1_FIX: begin
                     timeout_counter <= 0;
+                    short_preamble_detected <= 1;
                     if (!power_trigger_1) begin
                         state <= ANT_WAIT;
                     end
                 end
                 ANT2_FIX: begin
                     timeout_counter <= 0;
+                    short_preamble_detected <= 1;
                     if (!power_trigger_2) begin
                         state <= ANT_WAIT;
                     end

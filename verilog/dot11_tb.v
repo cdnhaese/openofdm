@@ -7,14 +7,17 @@ reg clock;
 reg reset;
 reg enable;
 
-reg [10:0] rssi_half_db;
-reg[31:0] sample_in;
+reg [10:0] rssi_half_db_1;
+reg [10:0] rssi_half_db_2;
+reg[31:0] sample_in_1;
+reg[31:0] sample_in_2;
 reg sample_in_strobe;
 reg [15:0] clk_count;
 
 wire [31:0] sync_short_metric;
 wire short_preamble_detected;
 wire power_trigger;
+wire ant_select;
 
 wire [31:0] sync_long_out;
 wire sync_long_out_strobe;
@@ -84,23 +87,25 @@ integer signal_fd;
 
 integer byte_out_fd;
 
-integer file_i, file_q, file_rssi_half_db, iq_sample_file;
+integer file_i_1, file_q_1, file_rssi_half_db_1, iq_sample_file_1;
+integer file_i_2, file_q_2, file_rssi_half_db_2, iq_sample_file_2;
 
 //`define SPEED_100M // comment out this to use 200M
 
 //`define SAMPLE_FILE "../../../../../testing_inputs/simulated/iq_11n_mcs7_gi0_100B_ht_unsupport_openwifi.txt"
 //`define SAMPLE_FILE "../../../../../testing_inputs/simulated/iq_11n_mcs7_gi0_100B_wrong_ht_sig_openwifi.txt"
 //`define SAMPLE_FILE "../../../../../testing_inputs/simulated/iq_11n_mcs7_gi0_100B_wrong_sig_openwifi.txt"
-`define SAMPLE_FILE "../../../../../testing_inputs/simulated/iq_11n_mcs7_gi0_100B_openwifi.txt"
+//`define SAMPLE_FILE "../../../../../testing_inputs/simulated/iq_11n_mcs7_gi0_100B_openwifi.txt"
 //`define SAMPLE_FILE "../../../../../testing_inputs/conducted/dot11n_6.5mbps_98_5f_d3_c7_06_27_e8_de_27_90_6e_42_openwifi.txt"
 //`define SAMPLE_FILE "../../../../../testing_inputs/conducted/dot11n_52mbps_98_5f_d3_c7_06_27_e8_de_27_90_6e_42_openwifi.txt"
-//`define SAMPLE_FILE "../../../../../testing_inputs/radiated/dot11n_19.5mbps_openwifi.txt"
+`define SAMPLE_FILE_1 "../../../../../testing_inputs/radiated/dot11n_19.5mbps_openwifi.txt"
+`define SAMPLE_FILE_2 "../../../../../testing_inputs/radiated/dot11n_19.5mbps_openwifi_v2.txt"
 //`define SAMPLE_FILE "../../../../../testing_inputs/conducted/dot11n_58.5mbps_98_5f_d3_c7_06_27_e8_de_27_90_6e_42_openwifi.txt"
 //`define SAMPLE_FILE "../../../../../testing_inputs/conducted/dot11n_65mbps_98_5f_d3_c7_06_27_e8_de_27_90_6e_42_openwifi.txt" 
 //`define SAMPLE_FILE "../../../../../testing_inputs/conducted/dot11a_48mbps_qos_data_e4_90_7e_15_2a_16_e8_de_27_90_6e_42_openwifi.txt"
 //`define SAMPLE_FILE "../../../../../testing_inputs/radiated/ack-ok-openwifi.txt"
 
-`define NUM_SAMPLE 8560
+`define NUM_SAMPLE 3000
 
 //`define SAMPLE_FILE "../../../../../testing_inputs/simulated/openofdm_tx/PL_100Bytes/54Mbps.txt"
 //`define NUM_SAMPLE 2048
@@ -131,7 +136,8 @@ integer file_open_trigger = 0;
 always @(posedge clock) begin
     file_open_trigger = file_open_trigger + 1;
     if (file_open_trigger==1) begin
-        iq_sample_file = $fopen(`SAMPLE_FILE, "r");
+        iq_sample_file_1 = $fopen(`SAMPLE_FILE_1, "r");
+        iq_sample_file_2 = $fopen(`SAMPLE_FILE_2, "r");
 
         bb_sample_fd = $fopen("./sample_in.txt", "w");
         power_trigger_fd = $fopen("./power_trigger.txt", "w");
@@ -166,7 +172,8 @@ end
 
 always @(posedge clock) begin
     if (reset) begin
-        sample_in <= 0;
+        sample_in_1 <= 0;
+        sample_in_2 <= 0;
         clk_count <= 0;
         sample_in_strobe <= 0;
         addr <= 0;
@@ -177,12 +184,16 @@ always @(posedge clock) begin
         if (clk_count == 9) begin // for 200M; 200/20 = 10
         `endif
             sample_in_strobe <= 1;
-            //$fscanf(iq_sample_file, "%d %d %d", file_i, file_q, file_rssi_half_db);
-            $fscanf(iq_sample_file, "%d %d", file_i, file_q);
-            sample_in[15:0] <= file_q;
-            sample_in[31:16]<= file_i;
-            //rssi_half_db <= file_rssi_half_db;
-            rssi_half_db <= 0;
+            $fscanf(iq_sample_file_1, "%d %d", file_i_1, file_q_1);
+            $fscanf(iq_sample_file_2, "%d %d", file_i_2, file_q_2);
+            //$fscanf(iq_sample_file, "%d %d", file_i, file_q);
+            sample_in_1[15:0] <= file_q_1;
+            sample_in_1[31:16]<= file_i_1;
+            rssi_half_db_1 <= 10'd_100;
+            sample_in_2[15:0] <= file_q_2;
+            sample_in_2[31:16]<= file_i_2;
+            rssi_half_db_2 <= 10'd_50;
+            //rssi_half_db <= 0;
             addr <= addr + 1;
             clk_count <= 0;
         end else begin
@@ -195,7 +206,7 @@ always @(posedge clock) begin
 
         //if (sample_in_strobe && power_trigger) begin
         if (sample_in_strobe) begin
-            $fwrite(bb_sample_fd, "%d %d %d\n", $time/2, $signed(sample_in[31:16]), $signed(sample_in[15:0]));
+            $fwrite(bb_sample_fd, "%d %d %d\n", $time/2, $signed(sample_in_1[31:16]), $signed(sample_in_1[15:0]));
             $fwrite(power_trigger_fd, "%d %d\n", $time/2, power_trigger);
             $fwrite(short_preamble_detected_fd, "%d %d\n", $time/2, short_preamble_detected);
 
@@ -212,7 +223,8 @@ always @(posedge clock) begin
             end
 
             if (addr == `NUM_SAMPLE) begin
-                $fclose(iq_sample_file);
+                $fclose(iq_sample_file_1);
+                $fclose(iq_sample_file_2);
 
                 $fclose(bb_sample_fd);
                 $fclose(power_trigger_fd);
@@ -297,8 +309,10 @@ dot11 dot11_inst (
     .power_thres(11'd0),
     .min_plateau(32'd100),
 
-    .rssi_half_db(rssi_half_db),
-    .sample_in(sample_in),
+    .rssi_half_db_1(rssi_half_db_1),
+    .rssi_half_db_2(rssi_half_db_2),
+    .sample_in_1(sample_in_1),
+    .sample_in_2(sample_in_2),
     .sample_in_strobe(sample_in_strobe),
     .soft_decoding(1'b1),
 
@@ -315,6 +329,7 @@ dot11 dot11_inst (
     .state(dot11_state),
 
     .power_trigger(power_trigger),
+    .ant_select(ant_select),
 
     .short_preamble_detected(short_preamble_detected),
 
