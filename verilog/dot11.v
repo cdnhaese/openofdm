@@ -15,9 +15,11 @@ module dot11 (
     input [31:0] min_plateau,
 
     // INPUT: RSSI
-    input [10:0] rssi_half_db,
-    // INPUT: I/Q sample
-    input [31:0] sample_in,
+    input [10:0] rssi_half_db1,
+    input [10:0] rssi_half_db2,
+    // INPUT: I/Q samples
+    input [31:0] sample_in_1,
+    input [31:0] sample_in_2,
     input sample_in_strobe,
     input soft_decoding,
 
@@ -50,11 +52,13 @@ module dot11 (
     output reg [31:0] state_history,
 
     // power trigger
-    output power_trigger,
-
-    // sync short
+    output wire power_trigger_1,
+    output wire power_trigger_2,
+    
+    // ant_switch
     output short_preamble_detected,
     output [31:0] phase_offset,
+    output ant_select,
 
     // sync long
     output [31:0] sync_long_metric,
@@ -158,13 +162,13 @@ rot_lut rot_lut_inst (
 
 
 ////////////////////////////////////////////////////////////////////////////////
-// Shared phase module for sync_short and equalizer
+// Shared phase module for sync_short_1 and equalizer
 ////////////////////////////////////////////////////////////////////////////////
-wire [31:0] sync_short_phase_in_i;
-wire [31:0] sync_short_phase_in_q;
-wire sync_short_phase_in_stb;
-wire [31:0] sync_short_phase_out;
-wire sync_short_phase_out_stb;
+wire [31:0] sync_short_phase_in_i_1;
+wire [31:0] sync_short_phase_in_q_1;
+wire sync_short_phase_in_stb_1;
+wire [31:0] sync_short_phase_out_1;
+wire sync_short_phase_out_stb_1;
 
 wire [31:0] eq_phase_in_i;
 wire [31:0] eq_phase_in_q;
@@ -173,21 +177,21 @@ wire [31:0] eq_phase_out;
 wire eq_phase_out_stb;
 
 wire[31:0] phase_in_i = state == S_SYNC_SHORT?
-    sync_short_phase_in_i: eq_phase_in_i;
+    sync_short_phase_in_i_1: eq_phase_in_i;
 wire[31:0] phase_in_q = state == S_SYNC_SHORT?
-    sync_short_phase_in_q: eq_phase_in_q;
+    sync_short_phase_in_q_1: eq_phase_in_q;
 wire phase_in_stb = state == S_SYNC_SHORT?
-    sync_short_phase_in_stb: eq_phase_in_stb;
+    sync_short_phase_in_stb_1: eq_phase_in_stb;
 
-wire [31:0] phase_out;
-wire phase_out_stb;
+wire [31:0] phase_out_1;
+wire phase_out_stb_1;
 
-assign sync_short_phase_out = phase_out;
-assign sync_short_phase_out_stb = phase_out_stb;
-assign eq_phase_out = phase_out;
-assign eq_phase_out_stb = phase_out_stb;
+assign sync_short_phase_out_1 = phase_out_1;
+assign sync_short_phase_out_stb_1 = phase_out_stb_1;
+assign eq_phase_out = phase_out_1;
+assign eq_phase_out_stb = phase_out_stb_1;
 
-phase phase_inst (
+phase phase_inst_1 (
     .clock(clock),
     .reset(reset),
     .enable(enable),
@@ -196,8 +200,29 @@ phase phase_inst (
     .in_q(phase_in_q),
     .input_strobe(phase_in_stb),
 
-    .phase(phase_out),
-    .output_strobe(phase_out_stb)
+    .phase(phase_out_1),
+    .output_strobe(phase_out_stb_1)
+);
+////////////////////////////////////////////////////////////////////////////////
+// Single phase module for second sync_short in ant_switch
+////////////////////////////////////////////////////////////////////////////////
+wire [31:0] sync_short_phase_in_i_2;
+wire [31:0] sync_short_phase_in_q_2;
+wire sync_short_phase_in_stb_2;
+wire [31:0] sync_short_phase_out_2;
+wire sync_short_phase_out_stb_2;
+
+phase phase_inst_2 (
+    .clock(clock),
+    .reset(reset),
+    .enable(enable),
+
+    .in_i(sync_short_phase_in_i_2),
+    .in_q(sync_short_phase_in_q_2),
+    .input_strobe(sync_short_phase_in_stb_2),
+
+    .phase(sync_short_phase_out_2),
+    .output_strobe(sync_short_phase_out_stb_2)
 );
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -236,7 +261,11 @@ reg short_gi;
 
 reg [3:0] old_state;
 
-assign power_trigger = (rssi_half_db>=power_thres? 1: 0);
+wire power_trigger;
+assign power_trigger_1 = (rssi_half_db1>=power_thres? 1: 0);
+assign power_trigger_2 = (rssi_half_db2>=power_thres? 1: 0);
+assign power_trigger = (power_trigger_1 | power_trigger_2);
+
 assign state_changed = state != old_state;
 
 // SIGNAL information
@@ -315,32 +344,60 @@ power_trigger power_trigger_inst (
 );
 */
 
-sync_short sync_short_inst (
+////////////////////////////////////////////////////////////////////////////////
+// ant_switch module + input multiplexer
+////////////////////////////////////////////////////////////////////////////////
+reg [31:0] selected_sample_in;
+
+always @(posedge clock) begin
+    if (reset) begin
+        selected_sample_in <= 0;
+    end else begin
+        if (!ant_select) begin
+            selected_sample_in <= sample_in_1;
+        end else begin
+            selected_sample_in <= sample_in_2;
+        end
+    end
+end
+
+ant_switch ant_switch_inst(
     .clock(clock),
-    .reset(reset | sync_short_reset),
-    .enable(enable & sync_short_enable),
-
+    .enable(enable),
+    .reset(reset),
+    .data_ant1_in(sample_in_1),
+    .data_ant2_in(sample_in_2),
+    .data_in_strobe(sample_in_strobe),
+    .rssi1_half_db(rssi_half_db1),
+    .rssi2_half_db(rssi_half_db2),
+    .power_trigger_1(power_trigger_1),
+    .power_trigger_2(power_trigger_2),
+    .sync_short_reset(sync_short_reset),
+    .sync_short_enable(sync_short_enable),
     .min_plateau(min_plateau),
-    .sample_in(sample_in),
-    .sample_in_strobe(sample_in_strobe),
-
-    .phase_in_i(sync_short_phase_in_i),
-    .phase_in_q(sync_short_phase_in_q),
-    .phase_in_stb(sync_short_phase_in_stb),
-
-    .phase_out(sync_short_phase_out),
-    .phase_out_stb(sync_short_phase_out_stb),
-
     .short_preamble_detected(short_preamble_detected),
-    .phase_offset(phase_offset)
+    .phase_offset(phase_offset),
+    .phase_out_1(sync_short_phase_out_1),
+    .phase_out_stb_1(sync_short_phase_out_stb_1),
+    .phase_out_2(sync_short_phase_out_2),
+    .phase_out_stb_2(sync_short_phase_out_stb_2),
+    .phase_in_i_1(sync_short_phase_in_i_1),
+    .phase_in_q_1(sync_short_phase_in_q_1),
+    .phase_in_stb_1(sync_short_phase_in_stb_1),
+    .phase_in_i_2(sync_short_phase_in_i_2),
+    .phase_in_q_2(sync_short_phase_in_q_2),
+    .phase_in_stb_2(sync_short_phase_in_stb_2),
+    .ant_select(ant_select)
 );
+
+////////////////////////////////////////////////////////////////////////////////
 
 sync_long sync_long_inst (
     .clock(clock),
     .reset(reset | sync_long_reset),
     .enable(enable & sync_long_enable),
 
-    .sample_in(sample_in),
+    .sample_in(selected_sample_in),
     .sample_in_strobe(sample_in_strobe),
     .phase_offset(phase_offset),
     .short_gi(short_gi),
