@@ -1,3 +1,14 @@
+# Ignore the following directories
+/verilog/Xilinx/*
+/verilog/coregen/*
+/openofdm_rx
+/openofdm
+/.Xil/
+
+# and the following files:
+*.jou
+*.str
 *.out
 *.vcd
-.virtualenv
+*.log
+*.mif
