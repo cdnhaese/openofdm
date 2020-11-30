@@ -226,14 +226,14 @@ always @(posedge clock) begin
             end
             
             if (addr == 2) begin
-                rssi_half_db_1 <= 11'd_50;
-                rssi_half_db_2 <= 11'd_100;
+                rssi_half_db_1 <= 11'd50;
+                rssi_half_db_2 <= 11'd100;
             end
             
             if (addr == `NUM_SAMPLE/2) begin
                 // Test switching during packet reception
-                rssi_half_db_1 <= 11'd_100;
-                rssi_half_db_2 <= 11'd_100;
+                rssi_half_db_1 <= 11'd100;
+                rssi_half_db_2 <= 11'd50;
             end
             
             if (addr == `NUM_SAMPLE-100) begin

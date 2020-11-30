@@ -12,3 +12,4 @@
 *.vcd
 *.log
 *.mif
+*.pyc

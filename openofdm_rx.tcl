@@ -162,6 +162,7 @@ set files [list \
  "[file normalize "$origin_dir/verilog/coregen/div_gen_new_ip_core_zynq/src/div_gen.v"]"\
  "[file normalize "$origin_dir/verilog/divider.v"]"\
  "[file normalize "$origin_dir/verilog/dot11.v"]"\
+ "[file normalize "$origin_dir/verilog/ant_switch.v"]"\
  "[file normalize "$origin_dir/verilog/equalizer.v"]"\
  "[file normalize "$origin_dir/verilog/ht_sig_crc.v"]"\
  "[file normalize "$origin_dir/verilog/moving_avg.v"]"\
