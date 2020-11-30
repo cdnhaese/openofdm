@@ -135,41 +135,47 @@ module ant_switch
                 end
                 ANT1_PREAMBLE: begin
                     timeout_counter <= timeout_counter + 1;
-                    if (!power_trigger_1) begin
+                    short_preamble_detected <= 0;
+                    if (~power_trigger_1) begin
                         state <= ANT_WAIT;
                     end else if (short_preamble_detected_2 && ant_select_internal==ANT2) begin
+                        short_preamble_detected <= 1;
                         state <= ANT2_FIX;
                     end else if (timeout_counter == {(TIMEOUT_WIDTH-1){1'b1}}) begin
+                        short_preamble_detected <= 1;
                         state <= ANT1_FIX;
                     end
                 end
                 ANT2_PREAMBLE: begin
                     timeout_counter <= timeout_counter + 1;
-                    if (!power_trigger_2) begin
+                    if (~power_trigger_2) begin
                         state <= ANT_WAIT;
                     end else if (short_preamble_detected_1 && ant_select_internal==ANT1) begin
+                        short_preamble_detected <= 1;
                         state <= ANT1_FIX;
                     end else if (timeout_counter == {(TIMEOUT_WIDTH-1){1'b1}}) begin
+                        short_preamble_detected <= 1;
                         state <= ANT2_FIX;
                     end
                 end
                 ANT1_FIX: begin
                     timeout_counter <= 0;
-                    short_preamble_detected <= 1;
-                    if (!power_trigger_1) begin
+                    if (short_preamble_detected) short_preamble_detected <= 0;
+                    if (~power_trigger_1) begin
                         state <= ANT_WAIT;
                     end
                 end
                 ANT2_FIX: begin
                     timeout_counter <= 0;
-                    short_preamble_detected <= 1;
-                    if (!power_trigger_2) begin
+                    if (short_preamble_detected) short_preamble_detected <= 0;
+                    if (~power_trigger_2) begin
                         state <= ANT_WAIT;
                     end
                 end
                 default: begin
                     state <= ANT_WAIT;
                     timeout_counter <= 0;
+                    short_preamble_detected <= 0;
                 end
             endcase
         end

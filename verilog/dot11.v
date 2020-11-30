@@ -348,11 +348,14 @@ power_trigger power_trigger_inst (
 // ant_switch module + input multiplexer
 ////////////////////////////////////////////////////////////////////////////////
 reg [31:0] selected_sample_in;
+reg selected_sample_in_strobe;
 
 always @(posedge clock) begin
     if (reset) begin
         selected_sample_in <= 0;
+        selected_sample_in_strobe <= 0;
     end else begin
+        selected_sample_in_strobe <= sample_in_strobe;
         if (!ant_select) begin
             selected_sample_in <= sample_in_1;
         end else begin
@@ -398,7 +401,7 @@ sync_long sync_long_inst (
     .enable(enable & sync_long_enable),
 
     .sample_in(selected_sample_in),
-    .sample_in_strobe(sample_in_strobe),
+    .sample_in_strobe(selected_sample_in_strobe),
     .phase_offset(phase_offset),
     .short_gi(short_gi),
 

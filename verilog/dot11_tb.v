@@ -105,7 +105,7 @@ integer file_i_2, file_q_2, file_rssi_half_db_2, iq_sample_file_2;
 //`define SAMPLE_FILE "../../../../../testing_inputs/conducted/dot11a_48mbps_qos_data_e4_90_7e_15_2a_16_e8_de_27_90_6e_42_openwifi.txt"
 //`define SAMPLE_FILE "../../../../../testing_inputs/radiated/ack-ok-openwifi.txt"
 
-`define NUM_SAMPLE 3000
+`define NUM_SAMPLE 2200
 
 //`define SAMPLE_FILE "../../../../../testing_inputs/simulated/openofdm_tx/PL_100Bytes/54Mbps.txt"
 //`define NUM_SAMPLE 2048
@@ -189,10 +189,8 @@ always @(posedge clock) begin
             //$fscanf(iq_sample_file, "%d %d", file_i, file_q);
             sample_in_1[15:0] <= file_q_1;
             sample_in_1[31:16]<= file_i_1;
-            rssi_half_db_1 <= 10'd_100;
             sample_in_2[15:0] <= file_q_2;
             sample_in_2[31:16]<= file_i_2;
-            rssi_half_db_2 <= 10'd_50;
             //rssi_half_db <= 0;
             addr <= addr + 1;
             clk_count <= 0;
@@ -221,7 +219,29 @@ always @(posedge clock) begin
             if ((addr % 100) == 0) begin
                 $display("%d", addr);
             end
-
+            
+            if (addr == 1) begin
+                rssi_half_db_1 <= 0;
+                rssi_half_db_2 <= 0;
+            end
+            
+            if (addr == 2) begin
+                rssi_half_db_1 <= 11'd_50;
+                rssi_half_db_2 <= 11'd_100;
+            end
+            
+            if (addr == `NUM_SAMPLE/2) begin
+                // Test switching during packet reception
+                rssi_half_db_1 <= 11'd_100;
+                rssi_half_db_2 <= 11'd_100;
+            end
+            
+            if (addr == `NUM_SAMPLE-100) begin
+                // Test switching during packet reception
+                rssi_half_db_1 <= 0;
+                rssi_half_db_2 <= 0;
+            end
+            
             if (addr == `NUM_SAMPLE) begin
                 $fclose(iq_sample_file_1);
                 $fclose(iq_sample_file_2);
