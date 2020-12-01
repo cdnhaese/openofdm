@@ -98,14 +98,18 @@ integer file_i_2, file_q_2, file_rssi_half_db_2, iq_sample_file_2;
 //`define SAMPLE_FILE "../../../../../testing_inputs/simulated/iq_11n_mcs7_gi0_100B_openwifi.txt"
 //`define SAMPLE_FILE "../../../../../testing_inputs/conducted/dot11n_6.5mbps_98_5f_d3_c7_06_27_e8_de_27_90_6e_42_openwifi.txt"
 //`define SAMPLE_FILE "../../../../../testing_inputs/conducted/dot11n_52mbps_98_5f_d3_c7_06_27_e8_de_27_90_6e_42_openwifi.txt"
-`define SAMPLE_FILE_1 "../../../../../testing_inputs/radiated/dot11n_19.5mbps_openwifi.txt"
-`define SAMPLE_FILE_2 "../../../../../testing_inputs/radiated/dot11n_19.5mbps_openwifi_v2.txt"
+//`define SAMPLE_FILE_1 "../../../../../testing_inputs/radiated/dot11n_19.5mbps_openwifi.txt"
+//`define SAMPLE_FILE_2 "../../../../../testing_inputs/radiated/dot11n_19.5mbps_openwifi_v2.txt"
+`define SAMPLE_FILE_1 "../../../../../testing_inputs/radiated/dot11n_19.5mbps_openwifi_repeated.txt"
+`define SAMPLE_FILE_2 "../../../../../testing_inputs/radiated/dot11n_19.5mbps_openwifi_repeated_v2.txt"
+//`define SAMPLE_FILE_1 "../../../../../testing_inputs/simulated/iq_11n_mcs7_gi0_100B_openwifi.txt"
+//`define SAMPLE_FILE_2 "../../../../../testing_inputs/simulated/iq_11n_mcs7_gi0_100B_openwifi_v2.txt"
 //`define SAMPLE_FILE "../../../../../testing_inputs/conducted/dot11n_58.5mbps_98_5f_d3_c7_06_27_e8_de_27_90_6e_42_openwifi.txt"
 //`define SAMPLE_FILE "../../../../../testing_inputs/conducted/dot11n_65mbps_98_5f_d3_c7_06_27_e8_de_27_90_6e_42_openwifi.txt" 
 //`define SAMPLE_FILE "../../../../../testing_inputs/conducted/dot11a_48mbps_qos_data_e4_90_7e_15_2a_16_e8_de_27_90_6e_42_openwifi.txt"
 //`define SAMPLE_FILE "../../../../../testing_inputs/radiated/ack-ok-openwifi.txt"
 
-`define NUM_SAMPLE 2200
+`define NUM_SAMPLE 4400
 
 //`define SAMPLE_FILE "../../../../../testing_inputs/simulated/openofdm_tx/PL_100Bytes/54Mbps.txt"
 //`define NUM_SAMPLE 2048
@@ -230,6 +234,18 @@ always @(posedge clock) begin
                 rssi_half_db_2 <= 11'd100;
             end
             
+            if (addr == `NUM_SAMPLE/4) begin
+                // Test switching during packet reception
+                rssi_half_db_1 <= 11'd100;
+                rssi_half_db_2 <= 11'd50;
+            end
+            
+            if (addr == `NUM_SAMPLE/2-10) begin
+                // Test switching during packet reception
+                rssi_half_db_1 <= 0;
+                rssi_half_db_2 <= 0;
+            end
+            
             if (addr == `NUM_SAMPLE/2) begin
                 // Test switching during packet reception
                 rssi_half_db_1 <= 11'd100;
@@ -237,7 +253,6 @@ always @(posedge clock) begin
             end
             
             if (addr == `NUM_SAMPLE-100) begin
-                // Test switching during packet reception
                 rssi_half_db_1 <= 0;
                 rssi_half_db_2 <= 0;
             end
@@ -326,7 +341,7 @@ dot11 dot11_inst (
     //.set_addr(set_addr),
     //.set_data(set_data),
 
-    .power_thres(11'd0),
+    .power_thres(1),
     .min_plateau(32'd100),
 
     .rssi_half_db_1(rssi_half_db_1),
