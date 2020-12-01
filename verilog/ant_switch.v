@@ -4,7 +4,7 @@
 module ant_switch
 #(
     parameter integer IQ_DATA_WIDTH	= 16,
-    parameter integer TIMEOUT_WIDTH = 4
+    parameter integer TIMEOUT_WIDTH = 5
 )
 (   
     input clock,
@@ -127,7 +127,13 @@ module ant_switch
                 ANT_WAIT: begin
                     short_preamble_detected <= 0;
                     timeout_counter <= 0;
-                    if (short_preamble_detected_1) begin
+                    if (short_preamble_detected_1 && short_preamble_detected_2) begin
+                        if (ant_select_internal==ANT2) begin
+                            state <= ANT2_PREAMBLE;
+                        end else begin
+                            state <= ANT1_PREAMBLE;
+                        end
+                    end else if (short_preamble_detected_1) begin
                         state <= ANT1_PREAMBLE;
                     end else if (short_preamble_detected_2) begin
                         state <= ANT2_PREAMBLE;
@@ -141,7 +147,7 @@ module ant_switch
                     end else if (short_preamble_detected_2 && ant_select_internal==ANT2) begin
                         short_preamble_detected <= 1;
                         state <= ANT2_FIX;
-                    end else if (timeout_counter == {(TIMEOUT_WIDTH-1){1'b1}}) begin
+                    end else if (timeout_counter == {TIMEOUT_WIDTH{1'b1}}) begin
                         short_preamble_detected <= 1;
                         state <= ANT1_FIX;
                     end
@@ -153,7 +159,7 @@ module ant_switch
                     end else if (short_preamble_detected_1 && ant_select_internal==ANT1) begin
                         short_preamble_detected <= 1;
                         state <= ANT1_FIX;
-                    end else if (timeout_counter == {(TIMEOUT_WIDTH-1){1'b1}}) begin
+                    end else if (timeout_counter == {TIMEOUT_WIDTH{1'b1}}) begin
                         short_preamble_detected <= 1;
                         state <= ANT2_FIX;
                     end
