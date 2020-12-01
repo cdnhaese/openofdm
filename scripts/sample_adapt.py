@@ -39,19 +39,14 @@ def test():
 		exit(1)
 
 	samples_out = []
-	switch = False
 	for idx in range(0, samples_in.shape[0], 2):
-		if not (idx % 80):
-			switch = not switch
-		if switch:
-			c = complex(samples_in[idx], samples_in[idx+1])
-			r, phi = polar(c)
-			r = args.radius * r
-			phi = phi + angle
-			res = rect(r, phi)
-			samples_out.extend([res.real, res.imag])
-		else:
-			samples_out.extend([samples_in[idx], samples_in[idx+1]])
+		c = complex(samples_in[idx], samples_in[idx+1])
+		r, phi = polar(c)
+		r = args.radius * r
+		phi = phi + angle
+		res = rect(r, phi)
+		samples_out.extend([res.real, res.imag])
+
 	if extension == '.dat':
 		samples_out = np.array(samples_out, dtype=np.int16)
 		samples_out.tofile(args.sample_out)
