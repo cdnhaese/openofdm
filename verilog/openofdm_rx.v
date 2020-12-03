@@ -12,8 +12,10 @@
 	(
 		// intf to dot11
 		//input  wire openofdm_core_rst,
-		input  wire signed [(RSSI_HALF_DB_WIDTH-1):0] rssi_half_db,
-		input  wire [(2*IQ_DATA_WIDTH-1):0] sample_in,
+		input  wire signed [(RSSI_HALF_DB_WIDTH-1):0] rssi_half_db_1,
+		input  wire signed [(RSSI_HALF_DB_WIDTH-1):0] rssi_half_db_2,
+		input  wire [(2*IQ_DATA_WIDTH-1):0] sample_in_1,
+		input  wire [(2*IQ_DATA_WIDTH-1):0] sample_in_2,
     	input  wire sample_in_strobe,
 
 		output wire demod_is_ongoing, // this needs to be corrected further to indicate actual RF on going regardless the latency
@@ -111,9 +113,11 @@
 		.power_thres(slv_reg2[10:0]),
 		.min_plateau(slv_reg3),
 
-		.rssi_half_db(rssi_half_db),
+		.rssi_half_db_1(rssi_half_db_1),
+		.rssi_half_db_2(rssi_half_db_2),
 
-		.sample_in(sample_in),
+		.sample_in_1(sample_in_1),
+		.sample_in_2(sample_in_2),
 		.sample_in_strobe(sample_in_strobe),
 		.soft_decoding(slv_reg4[0]),
 
@@ -145,9 +149,10 @@
 		// power trigger
 		.power_trigger(),
 
-		// sync short
+		// ant_switch + sync short
 		.short_preamble_detected(short_preamble_detected),
 		.phase_offset(),
+		.ant_select(),
 
 		// sync long
 		.sync_long_metric(),
